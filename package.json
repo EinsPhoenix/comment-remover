@@ -1,0 +1,187 @@
+{
+  "name": "comment-remover",
+  "displayName": "comment-remover",
+  "description": "Remove all the Comments from your files",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.108.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Comment Remover",
+      "properties": {
+        "commentRemover.ignorePatterns": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "File and folder patterns to ignore when removing comments. Supports glob patterns like *.css, test.txt, **/*.min.js, src/generated/",
+          "examples": [
+            "*.css",
+            "*.min.js",
+            "*.d.ts",
+            "test.txt",
+            "**/*.spec.ts",
+            "generated/",
+            "**/vendor/**"
+          ]
+        },
+        "commentRemover.preserveCommentPrefixes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Characters or strings that, when immediately following the comment marker (// or #), will preserve the comment. E.g., adding '/' will preserve '///' comments, adding 't' will preserve '//t' comments.",
+          "examples": [
+            "/",
+            "!",
+            "#",
+            "@",
+            "TODO",
+            "FIXME"
+          ]
+        },
+        "commentRemover.ignoredDirectories": {
+          "type": "array",
+          "default": [
+            "node_modules",
+            ".node_modules",
+            "venv",
+            ".venv",
+            "env",
+            ".env",
+            "__pycache__",
+            ".git",
+            ".svn",
+            ".hg",
+            "dist",
+            "build",
+            "out",
+            ".next",
+            ".nuxt",
+            "target",
+            "bin",
+            "obj"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Directory names to always ignore during folder processing. These are matched by exact name."
+        },
+        "commentRemover.removeLineComments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable removal of line comments (// and #)"
+        },
+        "commentRemover.removeBlockComments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable removal of block comments (/* */ and /** */)"
+        },
+        "commentRemover.removeEmptyLines": {
+          "type": "boolean",
+          "default": true,
+          "description": "Remove empty lines after comment removal"
+        },
+        "commentRemover.preserveJSDocComments": {
+          "type": "boolean",
+          "default": false,
+          "description": "Preserve JSDoc-style comments (/** ... */)"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "comment-remover.removeCommentsFromFile",
+        "title": "Remove Comments"
+      },
+      {
+        "command": "comment-remover.removeCommentsFromFolder",
+        "title": "Remove Comments from Folder"
+      },
+      {
+        "command": "comment-remover.undoLastRemoval",
+        "title": "Undo Last Comment Removal"
+      },
+      {
+        "command": "comment-remover.addIgnorePattern",
+        "title": "Comment Remover: Add Ignore Pattern"
+      },
+      {
+        "command": "comment-remover.removeIgnorePattern",
+        "title": "Comment Remover: Remove Ignore Pattern"
+      },
+      {
+        "command": "comment-remover.showIgnorePatterns",
+        "title": "Comment Remover: Show Ignore Patterns"
+      },
+      {
+        "command": "comment-remover.addPreservePrefix",
+        "title": "Comment Remover: Add Preserve Comment Prefix"
+      },
+      {
+        "command": "comment-remover.removePreservePrefix",
+        "title": "Comment Remover: Remove Preserve Comment Prefix"
+      },
+      {
+        "command": "comment-remover.showPreservePrefixes",
+        "title": "Comment Remover: Show Preserve Comment Prefixes"
+      },
+      {
+        "command": "comment-remover.addIgnoredDirectory",
+        "title": "Comment Remover: Add Ignored Directory"
+      },
+      {
+        "command": "comment-remover.removeIgnoredDirectory",
+        "title": "Comment Remover: Remove Ignored Directory"
+      },
+      {
+        "command": "comment-remover.showIgnoredDirectories",
+        "title": "Comment Remover: Show Ignored Directories"
+      },
+      {
+        "command": "comment-remover.showAllSettings",
+        "title": "Comment Remover: Show All Settings"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "comment-remover.removeCommentsFromFile",
+          "when": "!explorerResourceIsFolder",
+          "group": "2_workspace"
+        },
+        {
+          "command": "comment-remover.removeCommentsFromFolder",
+          "when": "explorerResourceIsFolder",
+          "group": "2_workspace"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.108.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.52.0",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
