@@ -11,18 +11,78 @@ export interface PendingChange {
     deletedLines: DeletedLine[];
     timestamp: number;
 }
+
+interface LineDiff {
+    isFullyDeleted: boolean;
+    originalLine: string;
+    modifiedLine: string;
+    deletedPart: string;
+}
+
 const pendingChanges = new Map<string, PendingChange>();
 let ghostDecorationTypes: vscode.TextEditorDecorationType[] = [];
-function createGhostDecorationType(content: string): vscode.TextEditorDecorationType {
+
+function isCommentContent(content: string): boolean {
+    const trimmed = content.trim();
+    if (trimmed.length === 0) {
+        return false;
+    }
+    return trimmed.startsWith('//') ||
+        trimmed.startsWith('/*') ||
+        trimmed.startsWith('*') ||
+        trimmed.startsWith('#') ||
+        trimmed.startsWith('<!--');
+}
+
+function detectLineDiff(originalLine: string, modifiedLine: string): LineDiff | null {
+    if (originalLine === modifiedLine) {
+        return null;
+    }
+
+    const origTrimmed = originalLine.trimEnd();
+    const modTrimmed = modifiedLine.trimEnd();
+
+    if (modTrimmed.length === 0 && origTrimmed.length > 0) {
+        const deletedContent = origTrimmed.trim();
+        if (!isCommentContent(deletedContent)) {
+            return null;
+        }
+        return {
+            isFullyDeleted: true,
+            originalLine,
+            modifiedLine,
+            deletedPart: origTrimmed
+        };
+    }
+
+    if (origTrimmed.startsWith(modTrimmed) && origTrimmed.length > modTrimmed.length) {
+        const deletedPart = origTrimmed.substring(modTrimmed.length);
+        if (!isCommentContent(deletedPart)) {
+            return null;
+        }
+        return {
+            isFullyDeleted: false,
+            originalLine,
+            modifiedLine,
+            deletedPart: deletedPart
+        };
+    }
+
+    return null;
+}
+function createGhostDecorationType(content: string, isInlineComment: boolean): vscode.TextEditorDecorationType {
+    const trimmedContent = content.trim();
+    const displayText = isInlineComment ? ` ${trimmedContent}` : `\n ${trimmedContent}`;
+
     return vscode.window.createTextEditorDecorationType({
         after: {
-            contentText: `\n ${content.trim()}`,
+            contentText: displayText,
             color: '#ff6b6b',
             fontStyle: 'italic',
-            margin: '0 0 0 3em'
+            margin: isInlineComment ? '0 0 0 1em' : '0 0 0 3em'
         },
         backgroundColor: 'rgba(255, 107, 107, 0.1)',
-        isWholeLine: true
+        isWholeLine: !isInlineComment
     });
 }
 function clearAllGhostDecorations(editor: vscode.TextEditor): void {
@@ -32,6 +92,14 @@ function clearAllGhostDecorations(editor: vscode.TextEditor): void {
     }
     ghostDecorationTypes = [];
 }
+function isLineFullyDeleted(targetLineNum: number, editor: vscode.TextEditor): boolean {
+    if (targetLineNum < 0 || targetLineNum >= editor.document.lineCount) {
+        return true;
+    }
+    const line = editor.document.lineAt(targetLineNum);
+    return line.text.trim().length === 0;
+}
+
 function applyGhostLineDecorations(editor: vscode.TextEditor): void {
     const filePath = editor.document.uri.fsPath;
     const change = pendingChanges.get(filePath);
@@ -56,9 +124,12 @@ function applyGhostLineDecorations(editor: vscode.TextEditor): void {
         if (!combinedContent) {
             continue;
         }
-        const decType = createGhostDecorationType(combinedContent);
-        ghostDecorationTypes.push(decType);
         const targetLine = editor.document.lineAt(targetLineNum);
+        const isInline = targetLine.text.trim().length > 0;
+        const isFullyDeleted = isLineFullyDeleted(targetLineNum, editor);
+
+        const decType = createGhostDecorationType(combinedContent, isInline && !isFullyDeleted);
+        ghostDecorationTypes.push(decType);
         editor.setDecorations(decType, [{ range: targetLine.range }]);
     }
 }
@@ -98,28 +169,86 @@ function updateStatusBar(): void {
         statusBarItem.hide();
     }
 }
+function findLineInModified(origLine: string, modLines: string[], startIdx: number, searchRange: number = 10): number {
+    const trimmedOrig = origLine.trim();
+    if (trimmedOrig.length === 0) {
+        return -1;
+    }
+
+    const endIdx = Math.min(startIdx + searchRange, modLines.length);
+    for (let i = startIdx; i < endIdx; i++) {
+        if (modLines[i].trim() === trimmedOrig) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 function calculateDeletedLines(original: string, modified: string): DeletedLine[] {
     const origLines = original.split('\n');
     const modLines = modified.split('\n');
     const deleted: DeletedLine[] = [];
     let origIdx = 0;
     let modIdx = 0;
+
     while (origIdx < origLines.length) {
-        if (modIdx < modLines.length && origLines[origIdx] === modLines[modIdx]) {
-            origIdx++;
-            modIdx++;
-        } else {
-            const content = origLines[origIdx].trim();
-            if (content.length > 0) {
+        const origLine = origLines[origIdx];
+
+        if (modIdx >= modLines.length) {
+            const content = origLine.trim();
+            if (content.length > 0 && isCommentContent(content)) {
                 deleted.push({
                     originalLineNumber: origIdx,
-                    targetLineNumber: modIdx,
-                    content: origLines[origIdx]
+                    targetLineNumber: Math.max(0, modLines.length - 1),
+                    content: origLine
                 });
             }
             origIdx++;
+            continue;
         }
+
+        const modLine = modLines[modIdx];
+        const diff = detectLineDiff(origLine, modLine);
+
+        if (diff) {
+            if (diff.deletedPart.trim().length > 0) {
+                deleted.push({
+                    originalLineNumber: origIdx,
+                    targetLineNumber: modIdx,
+                    content: diff.deletedPart
+                });
+            }
+            origIdx++;
+            if (!diff.isFullyDeleted) {
+                modIdx++;
+            }
+            continue;
+        }
+
+        if (origLine === modLine) {
+            origIdx++;
+            modIdx++;
+            continue;
+        }
+
+        const foundIdx = findLineInModified(origLine, modLines, modIdx);
+        if (foundIdx !== -1) {
+            modIdx = foundIdx + 1;
+            origIdx++;
+            continue;
+        }
+
+        const content = origLine.trim();
+        if (content.length > 0 && isCommentContent(content)) {
+            deleted.push({
+                originalLineNumber: origIdx,
+                targetLineNumber: modIdx,
+                content: origLine
+            });
+        }
+        origIdx++;
     }
+
     return deleted;
 }
 function updateUI(): void {
@@ -134,6 +263,8 @@ function updateUI(): void {
         } else {
             clearAllGhostDecorations(editor);
         }
+    } else {
+        vscode.commands.executeCommand('setContext', 'commentRemover.currentFileHasChanges', false);
     }
     updateStatusBar();
 }
@@ -151,6 +282,9 @@ export function initialize(context: vscode.ExtensionContext): void {
     );
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(e => {
+            if (e.document.uri.scheme !== 'file') {
+                return;
+            }
             const filePath = e.document.uri.fsPath;
             const change = pendingChanges.get(filePath);
             if (!change) {
@@ -161,7 +295,12 @@ export function initialize(context: vscode.ExtensionContext): void {
                 clearPendingChange(filePath);
                 return;
             }
-            change.deletedLines = calculateDeletedLines(change.originalContent, currentContent);
+            const newDeletedLines = calculateDeletedLines(change.originalContent, currentContent);
+            if (newDeletedLines.length === 0) {
+                clearPendingChange(filePath);
+                return;
+            }
+            change.deletedLines = newDeletedLines;
             const editor = vscode.window.activeTextEditor;
             if (editor && editor.document.uri.fsPath === filePath) {
                 applyGhostLineDecorations(editor);

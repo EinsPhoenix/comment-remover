@@ -41,6 +41,14 @@ Right-click on any folder in the Explorer and select **"Remove Comments from Fol
 
 ![Remove Comments from Folder](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/remove-comments-folder.png)
 
+### Made a mistake?
+
+No worries! After removing comments, all changes are clearly displayed. You can review changes individually and easily undo any modifications if needed:
+![View removed comments](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/RemovedComments.png)
+
+With the **Keep** or **Undo** buttons, you decide which files to keep or restore:
+![Keep or Undo](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/Keep.png)
+
 ### Command Palette
 
 You can also access all commands through the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
