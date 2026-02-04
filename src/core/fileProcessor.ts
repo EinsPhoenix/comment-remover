@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { removeComments } from './commentRemover';
 import { shouldIgnoreFile, shouldIgnoreDirectory } from '../utils/patternMatcher';
-import { getIgnorePatterns, getIgnoredDirectories } from './config';
+import { getIgnorePatterns, getIgnoredDirectories, getConfig } from './config';
+import { addPendingChange, clearAllPendingChanges, applyInlineDecorations } from '././changeReview';
 export interface UndoEntry {
     filePath: string;
     originalContent: string;
@@ -14,6 +15,7 @@ export function getUndoStack(): UndoEntry[] {
 }
 export function clearUndoStack(): void {
     undoStack = [];
+    clearAllPendingChanges();
 }
 export function popUndoEntry(): UndoEntry | undefined {
     return undoStack.pop();
@@ -50,9 +52,18 @@ export async function processFile(
         edit.replace(fileUri, fullRange, processedContent);
         await vscode.workspace.applyEdit(edit);
         await document.save();
-        outputChannel.appendLine(`✓ Processed: ${fileUri.fsPath}`);
+        const config = getConfig();
+        if (config.reviewChangesBeforeApplying) {
+            await addPendingChange(fileUri, originalContent, processedContent);
+            outputChannel.appendLine(`✓ Processed (pending review): ${fileUri.fsPath}`);
+        } else {
+            outputChannel.appendLine(`✓ Processed: ${fileUri.fsPath}`);
+        }
         if (showInEditor) {
-            await vscode.window.showTextDocument(document, { preview: false });
+            const editor = await vscode.window.showTextDocument(document, { preview: false });
+            if (config.reviewChangesBeforeApplying) {
+                applyInlineDecorations(editor);
+            }
         }
         return true;
     } catch (error) {

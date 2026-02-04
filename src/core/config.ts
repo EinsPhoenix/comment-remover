@@ -28,6 +28,7 @@ export interface CommentRemoverConfig {
     removeBlockComments: boolean;
     removeEmptyLines: boolean;
     preserveJSDocComments: boolean;
+    reviewChangesBeforeApplying: boolean;
 }
 export function getConfig(): CommentRemoverConfig {
     const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
@@ -38,7 +39,8 @@ export function getConfig(): CommentRemoverConfig {
         removeLineComments: config.get<boolean>('removeLineComments', true),
         removeBlockComments: config.get<boolean>('removeBlockComments', true),
         removeEmptyLines: config.get<boolean>('removeEmptyLines', true),
-        preserveJSDocComments: config.get<boolean>('preserveJSDocComments', false)
+        preserveJSDocComments: config.get<boolean>('preserveJSDocComments', false),
+        reviewChangesBeforeApplying: config.get<boolean>('reviewChangesBeforeApplying', true)
     };
 }
 export function getIgnorePatterns(): string[] {

@@ -1,15 +1,23 @@
 {
-  "name": "comment-remover",
-  "displayName": "comment-remover",
+  "name": "comment-remover-modular",
+  "displayName": "Comment Remover Modular",
   "description": "Remove all the Comments from your files",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "publisher": "EinsPhoenix",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EinsPhoenix/comment-remover"
+  },
   "engines": {
     "vscode": "^1.108.1"
   },
   "categories": [
-    "Other"
+    "Formatters"
   ],
-  "activationEvents": [],
+  "icon": "images/LogoCode.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
@@ -94,6 +102,11 @@
           "type": "boolean",
           "default": false,
           "description": "Preserve JSDoc-style comments (/** ... */)"
+        },
+        "commentRemover.reviewChangesBeforeApplying": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a review dialog before applying comment removal. Allows you to accept or reject changes like a git commit."
         }
       }
     },
@@ -149,6 +162,42 @@
       {
         "command": "comment-remover.showAllSettings",
         "title": "Comment Remover: Show All Settings"
+      },
+      {
+        "command": "comment-remover.keepChanges",
+        "title": "Keep",
+        "icon": "$(check)",
+        "enablement": "commentRemover.hasPendingChanges"
+      },
+      {
+        "command": "comment-remover.undoChanges",
+        "title": "Undo",
+        "icon": "$(discard)",
+        "enablement": "commentRemover.hasPendingChanges"
+      },
+      {
+        "command": "comment-remover.showPendingChanges",
+        "title": "Comment Remover: Show Pending Changes"
+      },
+      {
+        "command": "comment-remover.keepAllChanges",
+        "title": "Comment Remover: Keep All Changes",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "comment-remover.undoAllChanges",
+        "title": "Comment Remover: Undo All Changes",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "comment-remover.nextChange",
+        "title": "Next Change",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "comment-remover.prevChange",
+        "title": "Previous Change",
+        "icon": "$(arrow-up)"
       }
     ],
     "menus": {
@@ -163,8 +212,46 @@
           "when": "explorerResourceIsFolder",
           "group": "2_workspace"
         }
+      ],
+      "editor/title": [
+        {
+          "command": "comment-remover.keepChanges",
+          "when": "commentRemover.currentFileHasChanges",
+          "group": "navigation@1"
+        },
+        {
+          "command": "comment-remover.undoChanges",
+          "when": "commentRemover.currentFileHasChanges",
+          "group": "navigation@2"
+        }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "comment-remover.keepChanges",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus && commentRemover.hasPendingChanges"
+      },
+      {
+        "command": "comment-remover.undoChanges",
+        "key": "ctrl+shift+u",
+        "mac": "cmd+shift+u",
+        "when": "editorTextFocus && commentRemover.hasPendingChanges"
+      },
+      {
+        "command": "comment-remover.nextChange",
+        "key": "alt+down",
+        "mac": "alt+down",
+        "when": "editorTextFocus && commentRemover.hasPendingChanges"
+      },
+      {
+        "command": "comment-remover.prevChange",
+        "key": "alt+up",
+        "mac": "alt+up",
+        "when": "editorTextFocus && commentRemover.hasPendingChanges"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
@@ -177,7 +264,7 @@
   "devDependencies": {
     "@types/vscode": "^1.108.1",
     "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
+    "@types/node": "25.2.0",
     "typescript-eslint": "^8.52.0",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",

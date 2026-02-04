@@ -15,6 +15,17 @@ import {
     DEFAULT_IGNORED_DIRS,
     getConfig
 } from '../core/config';
+import {
+    keepChange,
+    undoChange,
+    keepAllChanges,
+    undoAllChanges,
+    showPendingChangesQuickPick,
+    hasPendingChanges,
+    getAllPendingChanges,
+    goToNextHunk,
+    goToPrevHunk
+} from '../core/changeReview';
 export function registerCommands(
     context: vscode.ExtensionContext,
     outputChannel: vscode.OutputChannel
@@ -256,7 +267,8 @@ export function registerCommands(
                 { label: 'Remove Line Comments', description: config.removeLineComments ? 'Yes' : 'No', command: 'commentRemover.removeLineComments' },
                 { label: 'Remove Block Comments', description: config.removeBlockComments ? 'Yes' : 'No', command: 'commentRemover.removeBlockComments' },
                 { label: 'Remove Empty Lines', description: config.removeEmptyLines ? 'Yes' : 'No', command: 'commentRemover.removeEmptyLines' },
-                { label: 'Preserve JSDoc Comments', description: config.preserveJSDocComments ? 'Yes' : 'No', command: 'commentRemover.preserveJSDocComments' }
+                { label: 'Preserve JSDoc Comments', description: config.preserveJSDocComments ? 'Yes' : 'No', command: 'commentRemover.preserveJSDocComments' },
+                { label: 'Review Changes Before Applying', description: config.reviewChangesBeforeApplying ? 'Yes' : 'No', command: 'commentRemover.reviewChangesBeforeApplying' }
             ];
             const selected = await vscode.window.showQuickPick(items, {
                 placeHolder: 'Comment Remover Settings - Select to configure',
@@ -265,6 +277,68 @@ export function registerCommands(
             if (selected) {
                 vscode.commands.executeCommand('workbench.action.openSettings', selected.command);
             }
+        }
+    );
+    const keepChangesCommand = vscode.commands.registerCommand(
+        'comment-remover.keepChanges',
+        async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showInformationMessage('No active editor');
+                return;
+            }
+            const filePath = editor.document.uri.fsPath;
+            if (!hasPendingChanges(filePath)) {
+                vscode.window.showInformationMessage('No pending changes in this file');
+                return;
+            }
+            await keepChange(filePath);
+        }
+    );
+    const undoChangesCommand = vscode.commands.registerCommand(
+        'comment-remover.undoChanges',
+        async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showInformationMessage('No active editor');
+                return;
+            }
+            const filePath = editor.document.uri.fsPath;
+            if (!hasPendingChanges(filePath)) {
+                vscode.window.showInformationMessage('No pending changes in this file');
+                return;
+            }
+            await undoChange(filePath);
+        }
+    );
+    const showPendingChangesCommand = vscode.commands.registerCommand(
+        'comment-remover.showPendingChanges',
+        async () => {
+            await showPendingChangesQuickPick();
+        }
+    );
+    const keepAllChangesCommand = vscode.commands.registerCommand(
+        'comment-remover.keepAllChanges',
+        async () => {
+            await keepAllChanges();
+        }
+    );
+    const undoAllChangesCommand = vscode.commands.registerCommand(
+        'comment-remover.undoAllChanges',
+        async () => {
+            await undoAllChanges();
+        }
+    );
+    const nextChangeCommand = vscode.commands.registerCommand(
+        'comment-remover.nextChange',
+        () => {
+            goToNextHunk();
+        }
+    );
+    const prevChangeCommand = vscode.commands.registerCommand(
+        'comment-remover.prevChange',
+        () => {
+            goToPrevHunk();
         }
     );
     context.subscriptions.push(
@@ -280,6 +354,13 @@ export function registerCommands(
         addIgnoredDirectoryCommand,
         removeIgnoredDirectoryCommand,
         showIgnoredDirectoriesCommand,
-        showAllSettingsCommand
+        showAllSettingsCommand,
+        keepChangesCommand,
+        undoChangesCommand,
+        showPendingChangesCommand,
+        keepAllChangesCommand,
+        undoAllChangesCommand,
+        nextChangeCommand,
+        prevChangeCommand
     );
 }
