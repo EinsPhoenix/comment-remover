@@ -33,13 +33,13 @@
 
 Right-click on any file in the Explorer and select **"Remove Comments"**:
 
-![Remove Comments from File](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/main/images/remove-comments-file.png)
+![Remove Comments from File](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/remove-comments-file.png)
 
 ### Remove Comments from an Entire Folder
 
 Right-click on any folder in the Explorer and select **"Remove Comments from Folder"**:
 
-![Remove Comments from Folder](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/main/images/remove-comments-folder.png)
+![Remove Comments from Folder](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/remove-comments-folder.png)
 
 ### Command Palette
 
@@ -58,7 +58,7 @@ You can also access all commands through the Command Palette (`Ctrl+Shift+P` / `
 
 Customize the extension's behavior in your VS Code settings:
 
-![Settings](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/main/images/Settings.png)
+![Settings](https://raw.githubusercontent.com/EinsPhoenix/comment-remover/refs/heads/main/images/Settings.png)
 
 ---
 
